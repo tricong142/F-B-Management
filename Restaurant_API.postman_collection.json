@@ -1,0 +1,186 @@
+{
+  "info": {
+    "name": "🍽️ Restaurant Management System",
+    "description": "Order → Cashier → Invoice flow for Restaurant",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000" },
+    { "key": "order_id", "value": "" },
+    { "key": "invoice_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "🏥 Health Check",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/health"
+      }
+    },
+    {
+      "name": "📦 ORDERS",
+      "item": [
+        {
+          "name": "1️⃣ Tạo Order mới (Waiter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.collectionVariables.set('order_id', res.data.id);",
+                  "console.log('order_id saved:', res.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"table_number\": 5,\n  \"waiter_name\": \"Nguyễn Văn A\",\n  \"notes\": \"Khách dị ứng hải sản\",\n  \"items\": [\n    { \"item_name\": \"Phở bò tái\", \"quantity\": 2, \"price\": 75000 },\n    { \"item_name\": \"Cơm tấm sườn\", \"quantity\": 1, \"price\": 65000 },\n    { \"item_name\": \"Nước cam tươi\", \"quantity\": 3, \"price\": 35000 },\n    { \"item_name\": \"Chả giò chiên\", \"quantity\": 2, \"price\": 45000 }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "2️⃣ Xem tất cả Orders",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/orders"
+          }
+        },
+        {
+          "name": "2b. Filter Orders theo status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/orders?status=pending",
+              "query": [{ "key": "status", "value": "pending" }]
+            }
+          }
+        },
+        {
+          "name": "3️⃣ Xem chi tiết Order",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/orders/{{order_id}}"
+          }
+        },
+        {
+          "name": "4️⃣ Cập nhật → serving (Đang phục vụ)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/orders/{{order_id}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"serving\"\n}"
+            }
+          }
+        },
+        {
+          "name": "5️⃣ Checkout - Thu ngân thanh toán (CASHIER)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success) {",
+                  "  pm.collectionVariables.set('invoice_id', res.data.id);",
+                  "  console.log('invoice_id saved:', res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/orders/{{order_id}}/checkout",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cashier_name\": \"Trần Thị B\",\n  \"discount\": 50000,\n  \"discount_note\": \"Giảm 50k khách thân thiết\",\n  \"payment_method\": \"cash\"\n}"
+            }
+          }
+        },
+        {
+          "name": "6️⃣ Hủy Order (DELETE)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/orders/{{order_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧾 INVOICES",
+      "item": [
+        {
+          "name": "7️⃣ Xem chi tiết Invoice",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/invoices/{{invoice_id}}"
+          }
+        },
+        {
+          "name": "8️⃣ Xem tất cả Invoices",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/invoices"
+          }
+        }
+      ]
+    },
+    {
+      "name": "❌ ERROR CASES",
+      "item": [
+        {
+          "name": "ERR: Tạo order thiếu items",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/orders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"table_number\": 1,\n  \"waiter_name\": \"Test\",\n  \"items\": []\n}"
+            }
+          }
+        },
+        {
+          "name": "ERR: Update status không hợp lệ",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/orders/{{order_id}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"pending\"\n}"
+            }
+          }
+        },
+        {
+          "name": "ERR: Checkout order đã completed",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/orders/{{order_id}}/checkout",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cashier_name\": \"Test Cashier\"\n}"
+            }
+          }
+        },
+        {
+          "name": "ERR: Order không tồn tại",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/orders/non-existent-id-123"
+          }
+        }
+      ]
+    }
+  ]
+}
